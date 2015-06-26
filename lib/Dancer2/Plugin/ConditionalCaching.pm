@@ -120,25 +120,25 @@ register caching => sub {
     my $dsl  = shift;
     my %args = @_;
 
-    #my $chi = delete $args{chi};
-    #my $key = delete $args{key};
+    my $chi = delete $args{chi};
+    my $key = delete $args{key};
     my $dry = delete $args{dry} // 0;
 
     my $force = delete $args{force} // 0;
     my $throw = delete $args{throw} // 0;
     my $check = delete $args{check} // 1;
 
-    #if ( _instanceof( $chi => 'CHI' ) and defined $key and not exists $args{object} ) {
-    #    $args{object} = $chi->get_object( $key );
-    #}
+    if ( _instanceof( $chi => 'CHI' ) and defined $key and not exists $args{object} ) {
+        $args{object} = $chi->get_object( $key );
+    }
 
-    #if ( _instanceof $args{object} => 'CHI::CacheObject' ) {
-    #    my $co = delete $args{object};
-    #    $args{key}     //= $co->key;
-    #    $args{changed} //= $co->created_at;
-    #    $args{expires} //= $co->expires_at;
-    #    $args{builder} //= sub { $co->value };
-    #}
+    if ( _instanceof $args{object} => 'CHI::CacheObject' ) {
+        my $co = delete $args{object};
+        $args{key}     //= $co->key;
+        $args{changed} //= $co->created_at;
+        $args{expires} //= $co->expires_at;
+        $args{builder} //= sub { $co->value };
+    }
 
     my $etag    = delete $args{etag}; #// $key;
     my $weak    = !!delete $args{weak};
@@ -216,16 +216,16 @@ register caching => sub {
             %req_cc,
             Force => $force,
         );
-        #if ($chi and defined $expires) {
-        #    $chi->remove($key) if $force;
-        #    return $chi->compute(
-        #        $key,
-        #        { expires_at => $expires },
-        #        sub { $sub->(%subargs) }
-        #    );
-        #} else {
+        if ($chi and defined $expires) {
+            $chi->remove($key) if $force;
+            return $chi->compute(
+                $key,
+                { expires_at => $expires },
+                sub { $sub->(%subargs) }
+            );
+        } else {
             return $sub->(%subargs);
-        #}
+        }
     };
 
     my %resph = (
