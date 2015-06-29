@@ -47,6 +47,8 @@ register caching => sub {
     my $dsl  = shift;
     my %args = @_;
 
+    my $get_or_head = $dsl->request->method =~ m{^(?:get|head)$}i;
+
     my $dry = delete $args{dry} // 0;
 
     my $force = delete $args{force} // 0;
@@ -154,13 +156,10 @@ register caching => sub {
         }
     }
 
-    if ($dry) {
-        $builder->();
-        return 200;
-    } else {
+    if ($get_or_head and !$dry) {
         $dsl->response->header( HTTP::Headers::Fancy::encode_hash(%resph) );
     }
-    
+
     unless ($check) {
         return $builder->();
     }
@@ -184,8 +183,6 @@ register caching => sub {
     my $if_modified_since   = str2time( $reqh{IfModifiedSince} );
     my $if_unmodified_since = str2time( $reqh{IfUnmodifiedSince} );
     
-    my $get_or_head = $dsl->request->method =~ m{^(?:get|head)$}i;
-
     if ($if_match) {
         my $xa = (!!$if_match_any and !!$etag);
         my $xb = scalar grep { _cmp_weak( $etag, $_, $weak ) } @if_match;
@@ -306,6 +303,8 @@ To tell the client, the data is created half an hour before, say:
 
     caching(check => 0, changed => time - 1800);
 
+These headers are only sent when the request method is I<HEAD> or I<GET>.
+
 =head2 Using Etag
 
 An I<Etag> is a counter, a checksum, an unique id, adressing a specific state of data. It's up to you what you provide.
@@ -316,11 +315,13 @@ To tell the client, the response has the Etag C<abcdef>, say:
 
     caching(check => 0, etag => 'abcdef');
 
-=head2 Answer a GET or HEAD conditional request
+This header is only sent when the request method is I<HEAD> or I<GET>.
+
+=head2 Response to a GET or HEAD conditional request
 
 This step is basically accomplished by omitting the I<check> parameter in the examples above. It compares the request headers and then decides to answer the request with I<304 Not Modified> status code.
 
-A compare against the Etag takes precedence over time-based constraints. Etags are comapre with the I<If-None-Match> request header, time-based constraints are compared with the I<If-Modified-Since> request header.
+A compare against the Etag takes precedence over time-based constraints. Etags are comapred with the I<If-None-Match> request header, time-based constraints are compared with the I<If-Modified-Since> request header.
 
 To check against the Etag C<abcdef>, and exit the current route with I<304> if the Etag matches, say:
 
@@ -330,9 +331,11 @@ To check against time-based constraints, say:
 
     caching(changed => time - 3600);
 
-=head2 Answer a POST, PUT, PATCH or DELETE conditional request
+=head2 Response to a POST, PUT, PATCH or DELETE conditional request
 
 Its not really different to the example above. In case of a conflict, the status code is I<412 Precondition Failed>. Etags are compared aginst I<If-Match> and time-based constraints are compared against I<If-Unmodified-Since>.
+
+No I<Cache-Control>, I<Expires>, I<Age> or I<Last-Modified> headers are sent.
 
 =head2 Going deeper: using helper subroutine
 
@@ -362,9 +365,9 @@ If I<builder> is not a CodeRef, the value of that will be returned instead.
 
 =head2 Dry and catch
 
-If you don't want any headers to be set, no exception to be thrown and no auto-exit of the current route, then set I<dry> to C<1>.
+If you don't want any headers to be set, no exception to be thrown and no auto-exit of the current route, then set I<dry> to C<1> and I<check> to C<0>.
 
-    $status_code = caching(dry => 1);
+    $status_code = caching(dry => 1, check => 0);
 
 The I<builder> subroutine will be still executed, but C<200> will be returned instead.
 
