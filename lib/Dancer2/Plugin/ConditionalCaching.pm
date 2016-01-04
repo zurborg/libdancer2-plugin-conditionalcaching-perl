@@ -47,7 +47,7 @@ register caching => sub {
     my $dsl  = shift;
     my %args = @_;
 
-    my $get_or_head = $dsl->request->method =~ m{^(?:get|head)$}i;
+    my $get_or_head = $dsl->app->request->method =~ m{^(?:get|head)$}i;
 
     my $dry = delete $args{dry} // 0;
 
@@ -82,7 +82,7 @@ register caching => sub {
         }
     }
 
-    my %reqh = HTTP::Headers::Fancy::decode_hash( $dsl->request->headers );
+    my %reqh = HTTP::Headers::Fancy::decode_hash( $dsl->app->request->headers );
 
     my %req_cc = HTTP::Headers::Fancy::split_field_hash( $reqh{CacheControl} );
 
