@@ -157,7 +157,7 @@ register caching => sub {
     }
 
     if ($get_or_head and !$dry) {
-        $dsl->response->header( HTTP::Headers::Fancy::encode_hash(%resph) );
+        $dsl->app->response->header( HTTP::Headers::Fancy::encode_hash(%resph) );
     }
 
     unless ($check) {
@@ -189,13 +189,13 @@ register caching => sub {
         unless ( $xa or $xb ) {
             HTTP::Exception->throw(412) if $throw;
             return 412 if $dry;
-            $dsl->send_error( 'Precondition Failed', 412 );
+            $dsl->app->send_error( 'Precondition Failed', 412 );
         }
     } elsif ($if_unmodified_since and defined $changed ) {
         unless ( $if_unmodified_since > $changed ) {
             HTTP::Exception->throw(412) if $throw;
             return 412 if $dry;
-            $dsl->send_error( 'Precondition Failed', 412 );
+            $dsl->app->send_error( 'Precondition Failed', 412 );
         }
     }
     if ($if_none_match) {
@@ -205,18 +205,18 @@ register caching => sub {
             if ( $get_or_head ) {
                 HTTP::Exception->throw(304) if $throw;
                 return 304 if $dry;
-                $dsl->send_error( 'Not Modfied', 304 );
+                $dsl->app->send_error( 'Not Modfied', 304 );
             } else {
                 HTTP::Exception->throw(412) if $throw;
                 return 412 if $dry;
-                $dsl->send_error( 'Precondition Failed', 412 );
+                $dsl->app->send_error( 'Precondition Failed', 412 );
             }
         }
     } elsif ( $get_or_head and $if_modified_since and defined $changed ) {
         if ( $if_modified_since > $changed ) {
             HTTP::Exception->throw(304) if $throw;
             return 304 if $dry;
-            $dsl->send_error( 'Not Modfied', 304 );
+            $dsl->app->send_error( 'Not Modfied', 304 );
         }
     }
 
